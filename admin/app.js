@@ -26,7 +26,7 @@ $(document).ready(function () {
     });
 });
 
-authenticate( function(idToken){
+initialize( function(idToken){
     fetchConstructs()
     fetchFacets()
     fetchQuestions()

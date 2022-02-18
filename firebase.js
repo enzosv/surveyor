@@ -1,17 +1,14 @@
 
-const firebaseConfig = {
-    apiKey: "AIzaSyB3QQJTRaXpWRO-HRcF5kvWZ5WDKqoHSQY",
-    authDomain: "nikki-db42b.firebaseapp.com",
-    projectId: "nikki-db42b",
-    storageBucket: "nikki-db42b.appspot.com",
-    messagingSenderId: "998456593406",
-    appId: "1:998456593406:web:ad1475c13c53e8fb4eceaf",
-    measurementId: "G-W4RYWR8FB1"
-};
-const app = firebase.initializeApp(firebaseConfig);
-var token
-
-async function authenticate(success, failure) {
+var token;
+async function initialize(success) {
+    if (!firebase.apps.length) {
+        const configRequest = await fetch(window.location.origin+'/firebase_web.json')
+        const firebaseConfig = await configRequest.json()
+        console.log(firebase.apps.length)
+        const app = firebase.initializeApp(firebaseConfig);
+    }
+    
+    
     firebase.auth().onAuthStateChanged((user) => {
         if(!user){
             if(window.location.href != window.location.origin + "/") {
@@ -22,12 +19,18 @@ async function authenticate(success, failure) {
             signin()
             return
         }
+        if(window.location.href == window.location.origin + "/") {
+            window.location.replace("/questions");
+            return
+        }
+        console.log(user)
         user.getIdToken(true).then(function(idToken) {
-            success(idToken)
+            token = idToken
+            // success(idToken)
         }).catch(function(error) {
+            console.error(error)
             signin()
             return
-            failure(error)
         });
     });
 }
@@ -39,25 +42,6 @@ function signout() {
           console.error(error)
       });
 }
-
-
-authenticate(function(idToken){
-    token = idToken
-    if(window.location.href == window.location.origin + "/") {
-        window.location.replace("/questions");
-        return
-    }
-}, function(error){
-    console.error(error)
-    // console.log(window.location.href, window.location.origin)
-    // if(window.location.href != window.location.origin + "/") {
-    //     console.log("redirect")
-    //     window.location.replace("/");
-    //     return
-    // }
-    // signin()
-})
-
 
 function signin() {
     var ui = new firebaseui.auth.AuthUI(firebase.auth());

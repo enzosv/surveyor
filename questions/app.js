@@ -52,8 +52,6 @@ function answer() {
     })
 }
 
-authenticate( function(idToken){
+initialize( function(idToken){
     main(idToken)
-}, function(err){
-    console.error(error)
 })
