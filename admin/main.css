@@ -1,0 +1,8 @@
+.even {
+    background-color: rgba(255, 255, 255, 0) !important;
+}
+.dataTables_info {
+    color: white !important;
+}
+
+.dataTables_filter, .dataTables_length { display: none; }

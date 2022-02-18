@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Admin Question Dashboard</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+    integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+  <script src="https://cdn.datatables.net/1.11.4/js/jquery.dataTables.min.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://cdn.datatables.net/1.11.4/css/jquery.dataTables.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
+  <script src="../firebase.js"></script>
+  <script src="app.js"></script>
+  
+  <link rel="stylesheet" href="main.css">
+</head>
+
+<body class="bg-dark text-light">
+  <div class="container">
+    <div class="mt-4">
+      <h1>Admin Question Dashboard</h1>
+    </div>
+    <div class="mt-4">
+      <h2>Constructs</h2>
+      <form class="form-inline">
+        <label class="sr-only" for="construct_name">Name</label>
+        <div class="input-group mb-2 mr-sm-2">
+          <input type="text" class="form-control" id="construct_name" placeholder="Well Being">
+        </div>
+
+        <button type="button" class="btn btn-primary mb-2" onclick="setConstruct()">Add</button>
+      </form>
+      <table id="constructs" class="table table-dark table-striped text-light bg-dark">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Slug</th>
+            <th>Name</th>
+            <th>Created At</th>
+            <th>Edit</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <div class="mt-4">
+      <h2>Facets</h2>
+      <form class="form-inline">
+        <label class="sr-only" for="construct_id">Construct</label>
+        <select class="custom-select form-control mb-2 mr-sm-2" id="construct_id">
+          <option selected>Select Construct</option>
+        </select>
+
+        <label class="sr-only" for="facet_name">Name</label>
+        <div class="input-group mb-2 mr-sm-2">
+          <input type="text" class="form-control" id="facet_name" placeholder="Autonomy">
+        </div>
+
+        <button type="button" class="btn btn-primary mb-2" onclick="createFacet()">Add</button>
+      </form>
+      <table id="facets" class="table table-dark table-striped text-light bg-dark">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Construct</th>
+            <th>Name</th>
+            <th>Created At</th>
+            <th>Edit</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <div class="mt-4">
+      <h2>Questions</h2>
+      <form class="form-inline">
+        <label class="sr-only" for="facet_id">Facet</label>
+        <select class="custom-select form-control mb-2 mr-sm-2" id="facet_id">
+          <option selected>Select Facet</option>
+        </select>
+
+        <label class="sr-only" for="statement">Statement</label>
+        <div class="input-group mb-2 mr-sm-2">
+          <input type="text" class="form-control" id="statement" placeholder="I feel like...">
+        </div>
+
+        <button type="button" class="btn btn-primary mb-2" onclick="createQuestion()">Add</button>
+      </form>
+      <table id="questions" class="table table-dark table-striped text-light bg-dark">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Facet</th>
+            <th>Statement</th>
+            <th>Created At</th>
+            <th>Edit</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+  <button class="btn btn-danger" onclick="signout()">Sign Out</button>
+</body>
+
+</html>
