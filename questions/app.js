@@ -8,6 +8,7 @@ async function main(idToken){
             'Authorization': 'Token '+idToken
         }
     })
+    console.log(idToken)
     let questions = await response.json();
     let container = document.getElementById("questions")
     questions.forEach(element => {

@@ -26,7 +26,7 @@ async function initialize(success) {
         console.log(user)
         user.getIdToken(true).then(function(idToken) {
             token = idToken
-            // success(idToken)
+            success(idToken)
         }).catch(function(error) {
             console.error(error)
             signin()
