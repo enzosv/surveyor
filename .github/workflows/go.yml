@@ -20,7 +20,7 @@ jobs:
     - name: Build
       run: go build
     - name: Write secrets
-      - run: 'echo "$FIREBASE_WEB" > firebase_web.json'
+      run: 'echo "$FIREBASE_WEB" > firebase_web.json'
       shell: bash
       env:
         FIREBASE_WEB: ${{secrets.FIREBASE_WEB}}
