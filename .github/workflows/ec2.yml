@@ -34,10 +34,9 @@ jobs:
           REMOTE_HOST: ${{ secrets.HOST_DNS }}
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
+          EXCLUDE: "/.git/"
       - name: Run
         env:
-          FOO: "BAR"
-          BAR: "FOO"
           TARGET: ${{ secrets.TARGET_DIR }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REMOTE_USER: ${{ secrets.USERNAME }}
@@ -50,5 +49,4 @@ jobs:
           envs: FOO,BAR,DATABASE_URL,TARGET,REMOTE_USER
           script: |
             /usr/sbin/lsof -i:8080 -t | xargs kill -9
-            nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
-            echo "I am $BAR"
+            nohup /home/"$REMOTE_USER"/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
