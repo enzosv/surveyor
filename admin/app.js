@@ -52,13 +52,13 @@ async function setConstruct() {
     fetchConstructs()
 }
 
-function createFacet() {
+async function createFacet() {
     let data = {
         "construct_id": $("#construct_id").val(),
         "name": $("#facet_name").val()
     }
     console.log(data)
-    fetch("/admin/facets", {
+    await fetch("/admin/facets", {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -69,13 +69,13 @@ function createFacet() {
     fetchFacets()
 }
 
-function createQuestion() {
+async function createQuestion() {
     let data = {
         "facet_id": $("#facet_id").val(),
         "statement": $("#statement").val()
     }
     console.log(data)
-    fetch("/admin/questions", {
+    await fetch("/admin/questions", {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
@@ -107,7 +107,7 @@ function fetchConstructs() {
                 { "data": "created_at" },
                 {
                     "data": null,
-                    "defaultContent": '<button class="btn btn-info btn-sm">Edit</button>',
+                    "defaultContent": '<button class="btn btn-info btn-sm" disabled>Edit</button>',
                     "orderable": false
                 },
                 {
@@ -163,7 +163,7 @@ function fetchFacets() {
                 { "data": "created_at" },
                 {
                     "data": null,
-                    "defaultContent": '<button class="btn btn-info btn-sm">Edit</button>',
+                    "defaultContent": '<button class="btn btn-info btn-sm disabled">Edit</button>',
                     "orderable": false
                 },
                 {
@@ -251,7 +251,7 @@ function fetchQuestions() {
                 { "data": "created_at" },
                 {
                     "data": null,
-                    "defaultContent": '<button class="btn btn-info btn-sm">Edit</button>',
+                    "defaultContent": '<button class="btn btn-info btn-sm" disabled>Edit</button>',
                     "orderable": false
                 },
                 {
@@ -271,7 +271,7 @@ function fetchQuestions() {
             }
         } );
     } else {
-        table = $('#facets').DataTable();
+        table = $('#questions').DataTable();
         table.ajax.reload()
     }
 }
