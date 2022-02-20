@@ -28,7 +28,7 @@ jobs:
         env:
           FIREBASE_WEB: ${{ secrets.FIREBASE_WEB }}
       - name: Generate run script
-        run: echo "kill \$(lsof -t -i:8080 & ./nikki -p 8080 -db $DATABASE_URL" > run.sh
+        run: echo "kill \$(lsof -t -i:8080)\n ./nikki -p 8080 -db $DATABASE_URL" > run.sh
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy
