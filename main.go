@@ -106,7 +106,6 @@ func ListMembershipsHandler(pg_url string) http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		fmt.Println(memberships)
 		json.NewEncoder(w).Encode(memberships)
 	}
 }

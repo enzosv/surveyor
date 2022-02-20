@@ -9,7 +9,7 @@ async function manager(idToken){
         }
     })
     let response = await request.json();
-    var bars = {'Total':false, '':false}
+    var bars = {'Total':false, '':false} // add space
     var answers = {}
     var totals = {"count":0}
     response.forEach(answer => {
@@ -30,6 +30,7 @@ async function manager(idToken){
         if(key == 'count') {
             continue
         }
+        // add space
         answers[key].unshift(NaN)
         answers[key].unshift(value/totals.count)
     }
