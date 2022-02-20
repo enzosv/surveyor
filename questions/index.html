@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
-
+    
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta charset="utf-8">
     <title>Daily Questions</title>
     <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
@@ -12,23 +13,15 @@
 </head>
 
 <body class="bg-dark text-light">
-    <div class="container-fluid p-5 m-5 d-flex flex-column mvh-100">
-        <div class="mt-5 row flex-fill flex-column" >
-            <div class="col flex-fill">
-                <div class="h-100">
-                    <form id="questions" class="form-inline h-100">
-                        <button type="button" class="btn btn-primary mt-5" onclick="answer()">Submit</button>
-                    </form>
-                </div>
-                
-            </div>
+    <div class="container-fluid p-5 m-5 mvh-100">
+        <div>
+            <form id="questions" class="form-inline">
+                <button type="button" class="btn btn-primary mt-5" onclick="answer()">Submit</button>
+            </form>
         </div>
-        <div class="row mt-5">
-            <div class="col">
-                <button class="btn btn-danger" onclick="signout()">Sign Out</button>
-                <a class="btn btn-primary" href="/teams">Teams</a>
-            </div>
-            
+        <div class="mt-5">
+            <a class="btn btn-primary" href="/teams">Teams</a>
+            <button class="btn btn-danger" onclick="signout()">Sign Out</button>
         </div>
     </div>
 </body>
