@@ -41,9 +41,41 @@ func main() {
 	r.Handle("/admin/questions/{question_id}", DeleteQuestionHandler(*pg_url)).Methods("DELETE")
 	r.Handle("/daily", AnswerDailyHandler(*pg_url)).Methods("POST")
 	r.Handle("/daily", ListDailyQuestionsHandler(*pg_url)).Methods("GET")
+	r.Handle("/manager/answers", ListMemberAnswersHandler(*pg_url)).Methods("GET")
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
+}
+
+func ListMemberAnswersHandler(pg_url string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		conn, err := pgx.Connect(ctx, pg_url)
+		if err != nil {
+			response := map[string]string{"error": err.Error()}
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		defer conn.Close(ctx)
+		user, err := verifyUser(ctx, w, r, conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		answers, err := collateAnswers(ctx, conn, user.ID)
+		if err != nil {
+			fmt.Println(err)
+			response := map[string]string{"error": err.Error()}
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		json.NewEncoder(w).Encode(answers)
+	}
 }
 
 func SignInHandler(pg_url string) http.HandlerFunc {
@@ -67,7 +99,7 @@ func SignInHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		defer conn.Close(ctx)
-		userID, err := linkFirebase(ctx, conn, user)
+		u, err := linkFirebase(ctx, conn, user)
 		if err != nil {
 			fmt.Println(err)
 			response := map[string]string{"error": err.Error()}
@@ -76,7 +108,7 @@ func SignInHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		// default team and organization for prototype
-		err = setPrototypeDefaults(ctx, conn, userID)
+		err = setPrototypeDefaults(ctx, conn, u.ID)
 		if err != nil {
 			fmt.Println(err)
 			response := map[string]string{"error": err.Error()}
@@ -85,7 +117,7 @@ func SignInHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 
-		fmt.Fprintf(w, "%d", userID)
+		json.NewEncoder(w).Encode(u)
 	}
 }
 
@@ -115,9 +147,9 @@ func ListDailyQuestionsHandler(pg_url string) http.HandlerFunc {
 		defer conn.Close(ctx)
 		user, err := verifyUser(ctx, w, r, conn)
 		if err != nil {
+			fmt.Println(err)
 			return
 		}
-		fmt.Println(err)
 		daily, err := dailyQuestions(ctx, conn, user.ID)
 		if err != nil {
 			fmt.Println(err)
@@ -840,7 +872,7 @@ func userFromToken(ctx context.Context, conn *pgx.Conn, token string) (User, err
 	return u, nil
 }
 
-func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (int, error) {
+func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (User, error) {
 	email := ""
 	for k, v := range user.Firebase.Identities {
 		if k == "email" {
@@ -852,19 +884,19 @@ func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (int, e
 	}
 	query := `
 		INSERT INTO users (username, firebase_uid)
-		VALUES ($1, $2) 
+		SELECT $1, $2
 		ON CONFLICT ON CONSTRAINT users_firebase_uid_key
 		DO UPDATE SET
 			username=EXCLUDED.username 
-		RETURNING user_id;
+		RETURNING user_id, username, firebase_uid, is_admin, is_staff;
 	`
 	row := conn.QueryRow(ctx, query, email, user.UID)
-	var userID int
-	err := row.Scan(&userID)
+	var u User
+	err := row.Scan(&u.ID, &u.Username, &u.FirebaseUID, &u.IsAdmin, &u.IsStaff)
 	if err != nil {
-		return userID, err
+		return u, err
 	}
-	return userID, nil
+	return u, nil
 }
 
 func decodeIdToken(ctx context.Context, token string) (*auth.Token, error) {
@@ -878,4 +910,52 @@ func decodeIdToken(ctx context.Context, token string) (*auth.Token, error) {
 		return nil, errors.Wrap(err, "error getting Auth client")
 	}
 	return client.VerifyIDToken(ctx, token)
+}
+
+type CollatedAnsweres struct {
+	Team      string `json:"team"`
+	Construct string `json:"construct"`
+	Facet     string `json:"facet"`
+	Total     int    `json:"total"`
+	Count     int    `json:"count"`
+	Date      string `json:"date"`
+}
+
+func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]CollatedAnsweres, error) {
+	query := `
+		select t.name, c.name, f.name, 
+		coalesce(sum(-a.response+8) filter (where not q.reverse_measurement), 0)+
+		coalesce(sum(-a.response+8) filter (where q.reverse_measurement),0) as total,
+		count (a.response),
+		to_char(a.created_at, 'yyyy-mm-dd')
+		from members m
+		join answers a
+			on a.user_id = m.user_id 
+		join questions q using (question_id)
+		join facets f using (facet_id)
+		join constructs c using (construct_id)
+		join teams t using (team_id)
+		where team_id in (
+			select m.team_id  
+			from members m
+			where is_manager
+			and user_id = $1
+		)
+		group by t.name, c.construct_id, f.facet_id, to_char(a.created_at, 'yyyy-mm-dd');
+	`
+	rows, err := conn.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	var results []CollatedAnsweres
+	for rows.Next() {
+		var collated CollatedAnsweres
+		err := rows.Scan(&collated.Team, &collated.Construct, &collated.Facet, &collated.Total, &collated.Count, &collated.Date)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, collated)
+	}
+	return results, nil
+
 }
