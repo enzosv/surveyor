@@ -31,13 +31,12 @@ jobs:
         env:
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: echo "if pids=\$(lsof -i:8080 -t);
           then kill \$pids 
           fi 
           nohup /home/"$REMOTE_USER"/deployed/nikki -p 8080 -db $DATABASE_URL &
           echo 'it ran'"> run.sh
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy
         uses: easingthemes/ssh-deploy@main
         env:
@@ -51,14 +50,15 @@ jobs:
           BAR: "FOO"
           TARGET: ${{ secrets.TARGET_DIR }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REMOTE_USER: ${{ secrets.USERNAME }}
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: FOO,BAR,DATABASE_URL,TARGET
+          envs: FOO,BAR,DATABASE_URL,TARGET,REMOTE_USER
           script: |
             echo "I am $BAR"
-            /home/ec2-user/deployed/run.sh &
+            /home/"$REMOTE_USER"/deployed/run.sh &
             echo "I am $BAR"
