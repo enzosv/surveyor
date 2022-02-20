@@ -51,4 +51,4 @@ jobs:
           envs: TARGET,TEST
           script: |
             echo "$TEST"
-            ~/deployed/run.sh
+            ~/deployed/run.sh &
