@@ -35,7 +35,7 @@ jobs:
         run: echo "if pids=\$(lsof -i:8080 -t);
           then kill \$pids 
           fi 
-          nohup /home/"$REMOTE_USER"/deployed/nikki -p 8080 -db $DATABASE_URL &
+          nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL &
           echo 'it ran'"> run.sh
       - name: Deploy
         uses: easingthemes/ssh-deploy@main
