@@ -45,7 +45,4 @@ jobs:
             whoami
             ls -al
             kill $(lsof -t -i:8080)
-            "$TARGET"/nikki -p 8080 -db "$DATABASE_URL"
-          env:
-            TARGET: ${{ secrets.TARGET_DIR }}
-            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+            ${{ secrets.DATABASE_URL }}/nikki -p 8080 -db ${{ secrets.DATABASE_URL }}
