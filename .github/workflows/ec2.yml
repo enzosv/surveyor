@@ -42,14 +42,15 @@ jobs:
         env:
           FOO: "BAR"
           BAR: "FOO"
-        uses: appleboy/ssh-action@master
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        uses: appleboy/ssh-action@v0.1.4
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: FOO,BAR
+          envs: FOO,BAR,DATABASE_URL
           script: |
-            echo "I am $FOO"
+            kill $(lsof -t -i:8080) || echo no existing process
             echo "I am $BAR"
-            nohup /home/ec2-user/deployed/run.sh > nohup.out 2> nohup.err < /dev/null &
+            nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
