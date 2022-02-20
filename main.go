@@ -42,6 +42,7 @@ func main() {
 	r.Handle("/daily", AnswerDailyHandler(*pg_url)).Methods("POST")
 	r.Handle("/daily", ListDailyQuestionsHandler(*pg_url)).Methods("GET")
 	r.Handle("/manager/answers", ListMemberAnswersHandler(*pg_url)).Methods("GET")
+	r.Handle("/user/memberships", ListMembershipsHandler(*pg_url)).Methods("GET")
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
@@ -75,6 +76,38 @@ func ListMemberAnswersHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		json.NewEncoder(w).Encode(answers)
+	}
+}
+
+func ListMembershipsHandler(pg_url string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		conn, err := pgx.Connect(ctx, pg_url)
+		if err != nil {
+			fmt.Println(err)
+			response := map[string]string{"error": err.Error()}
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		defer conn.Close(ctx)
+		user, err := verifyUser(ctx, w, r, conn)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		memberships, err := listMemberships(ctx, conn, user.ID)
+		if err != nil {
+			fmt.Println(err)
+			response := map[string]string{"error": err.Error()}
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		fmt.Println(memberships)
+		json.NewEncoder(w).Encode(memberships)
 	}
 }
 
@@ -685,6 +718,7 @@ func dailyQuestions(ctx context.Context, conn *pgx.Conn, userID int) ([]Question
 	if err != nil {
 		return questions, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var question Question
 		err := rows.Scan(&question.ID, &question.Statement)
@@ -726,6 +760,7 @@ func listFacets(ctx context.Context, conn *pgx.Conn) ([]Facet, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var facets []Facet
 	for rows.Next() {
 		var facet Facet
@@ -748,6 +783,7 @@ func listQuestions(ctx context.Context, conn *pgx.Conn) ([]Question, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var questions []Question
 	for rows.Next() {
 		var question Question
@@ -947,6 +983,7 @@ func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]Collated
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	var results []CollatedAnsweres
 	for rows.Next() {
 		var collated CollatedAnsweres
@@ -958,4 +995,47 @@ func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]Collated
 	}
 	return results, nil
 
+}
+
+func listMemberships(ctx context.Context, conn *pgx.Conn, userID int) ([]map[string]interface{}, error) {
+	query := `
+	with mems as (
+		select t.organization_id, t.team_id, t.name, json_agg(
+			json_build_object(
+				'user_id', u.user_id, 
+				'username', u.username,
+				'firebase_uid', u.firebase_uid,
+				'is_manager', m.is_manager 
+			)
+		) as members
+		from members m 
+		join users u using (user_id)
+		JOIN teams t USING (team_id)
+		where m.team_id in (
+			select m.team_id  
+			from members m
+			where user_id = $1
+		)
+		group by t.team_id
+	),
+	orgs as (
+		select o.organization_id, o.name as organization_name, json_build_array(
+			json_build_object(
+			'team_id', m.team_id,
+			'team_name', m.name,
+			'members', m.members
+		)) as teams
+		from mems m
+		join organizations o using(organization_id)
+	)
+	select json_agg(row_to_json(orgs))
+	from orgs;
+	`
+	var result []map[string]interface{}
+	row := conn.QueryRow(ctx, query, userID)
+	err := row.Scan(&result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

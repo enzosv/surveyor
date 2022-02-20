@@ -23,7 +23,6 @@ async function initialize(success) {
             window.location.replace("/questions");
             return
         }
-        console.log(user)
         user.getIdToken(true).then(function(idToken) {
             token = idToken
             signin(idToken)
@@ -54,7 +53,6 @@ async function signin(idToken) {
         }
     })
     let response = await request.json()
-    console.log(response)
 }
 
 function firebaseSignIn() {

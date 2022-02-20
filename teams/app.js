@@ -1,5 +1,5 @@
 var question_ids = []
-async function main(idToken){
+async function manager(idToken){
     question_ids = []
     let request = await fetch("/manager/answers", {
         method: 'GET',
@@ -12,7 +12,6 @@ async function main(idToken){
     var bars = {'Total':false, '':false}
     var answers = {}
     var totals = {"count":0}
-    console.log(response)
     response.forEach(answer => {
         bars[answer.date] = false
         if(totals[answer.facet] == undefined) {
@@ -43,8 +42,6 @@ async function main(idToken){
     for (let key in bars) {
         categories.push(key)
     }
-    console.log(categories)
-    console.log(JSON.stringify(series))
 
     Highcharts.chart('container', {
         chart: {
@@ -98,6 +95,43 @@ async function main(idToken){
       });
 }
 
+async function members(idToken) {
+    let request = await fetch("/user/memberships", {
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Token '+idToken
+        }
+    })
+    let response = await request.json();
+    console.log(response)
+    let container = document.getElementById("memberships")
+    container.innerHTML = "<p>Organizations:"
+    response.forEach(org => {
+        var teamsDiv = ""
+        org.teams.forEach(team => {
+            
+            var membersDiv = ""
+            team.members.forEach(member => {
+                membersDiv += `&nbsp&nbsp&nbsp&nbsp${member.username} ${(member.is_manager) ? " (Manager)": ""}<br>`
+            }) 
+            teamsDiv += `
+                &nbsp&nbsp&nbsp${team.team_name}<br>
+                &nbsp&nbsp&nbspMembers:<br>
+                ${membersDiv}
+            `
+        })
+        container.innerHTML += `
+            &nbsp${org.organization_name}<br>
+            &nbsp&nbspTeams:<br>
+            ${teamsDiv}
+        `
+    })
+    container.innerHTML += "</p>"
+    console.log(JSON.stringify(response))
+}
+
 initialize( function(idToken){
-    main(idToken)
+    manager(idToken)
+    members(idToken)
 })
