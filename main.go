@@ -63,7 +63,6 @@ func ListMemberAnswersHandler(pg_url string) http.HandlerFunc {
 		defer conn.Close(ctx)
 		user, err := verifyUser(ctx, w, r, conn)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
 
@@ -95,7 +94,6 @@ func ListMembershipsHandler(pg_url string) http.HandlerFunc {
 		defer conn.Close(ctx)
 		user, err := verifyUser(ctx, w, r, conn)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
 		memberships, err := listMemberships(ctx, conn, user.ID)
@@ -179,7 +177,6 @@ func ListDailyQuestionsHandler(pg_url string) http.HandlerFunc {
 		defer conn.Close(ctx)
 		user, err := verifyUser(ctx, w, r, conn)
 		if err != nil {
-			fmt.Println(err)
 			return
 		}
 		daily, err := dailyQuestions(ctx, conn, user.ID)
@@ -462,6 +459,7 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		var answers []DailyAnswer
 		err := json.NewDecoder(r.Body).Decode(&answers)
 		if err != nil {
+			fmt.Println(err)
 			response := map[string]string{"error": "answers are required"}
 			w.WriteHeader(http.StatusBadRequest)
 			json.NewEncoder(w).Encode(response)
@@ -471,6 +469,7 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
+			fmt.Println(err)
 			response := map[string]string{"error": err.Error()}
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(response)
@@ -962,7 +961,7 @@ func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]Collated
 		coalesce(sum(-a.response+8) filter (where not q.reverse_measurement), 0)+
 		coalesce(sum(-a.response+8) filter (where q.reverse_measurement),0) as total,
 		count (a.response),
-		to_char(a.created_at, 'yyyy-mm-dd')
+		to_char(date_trunc('day', timezone('PHT', a.created_at)), 'yyyy-mm-dd')
 		from members m
 		join answers a
 			on a.user_id = m.user_id 
@@ -976,7 +975,7 @@ func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]Collated
 			where is_manager
 			and user_id = $1
 		)
-		group by t.name, c.construct_id, f.facet_id, to_char(a.created_at, 'yyyy-mm-dd');
+		group by t.name, c.construct_id, f.facet_id, date_trunc('day', timezone('PHT', a.created_at));
 	`
 	rows, err := conn.Query(ctx, query, userID)
 	if err != nil {
