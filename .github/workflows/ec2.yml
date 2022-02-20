@@ -44,7 +44,7 @@ jobs:
           BAR: "FOO"
           TARGET: ${{ secrets.TARGET_DIR }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        uses: appleboy/ssh-action@v0.1.4
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
