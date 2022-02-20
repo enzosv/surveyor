@@ -47,7 +47,6 @@ jobs:
           port: 22
           envs: DATABASE_URL,TARGET,TEST
           script: |
-            echo $TEST
             echo "$TEST"
             kill $(lsof -t -i:8080)
-            $TARGET/nikki -p 8080 -db $DATABASE_URL
+            "$TARGET"/nikki -p 8080 -db "$DATABASE_URL"
