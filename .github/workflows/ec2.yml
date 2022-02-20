@@ -41,15 +41,14 @@ jobs:
       - name: Run
         env: 
           TARGET: ${{ secrets.TARGET_DIR }}
-          TEST: ${{ secrets.TEST }}
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: TARGET,TEST
+          envs: TARGET
           script: |
             whoami
-            echo "$TEST"
+            echo $TARGET
             nohup "$TARGET"run.sh > nohup.out 2> nohup.err < /dev/null &
