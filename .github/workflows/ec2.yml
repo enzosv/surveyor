@@ -28,10 +28,13 @@ jobs:
         env:
           FIREBASE_WEB: ${{ secrets.FIREBASE_WEB }}
       - name: Generate run script
+        env:
+          REMOTE_USER: ${{ secrets.USERNAME }}
+          TARGET: ${{ secrets.TARGET_DIR }}
         run: echo "if pids=\$(lsof -i:8080 -t);
-          then kill $pids 
+          then kill \$pids 
           fi 
-          nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL &
+          nohup /home/"$REMOTE_USER"/deployed/nikki -p 8080 -db $DATABASE_URL &
           echo 'it ran'"> run.sh
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
