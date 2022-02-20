@@ -39,11 +39,14 @@ jobs:
         env: 
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TARGET: ${{ secrets.TARGET_DIR }}
+          TEST: ${{ secrets.TEST }}
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
+            echo $TEST
+            echo "$TEST"
             kill $(lsof -t -i:8080)
-            "$TARGET"/nikki -p 8080 -db "$DATABASE_URL"
+            $TARGET/nikki -p 8080 -db $DATABASE_URL
