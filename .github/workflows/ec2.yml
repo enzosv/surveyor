@@ -52,4 +52,4 @@ jobs:
           script: |
             echo "I am $FOO"
             echo "I am $BAR"
-            nohup ~/deployed/run.sh > nohup.out 2> nohup.err < /dev/null &
+            nohup /home/ec2-user/deployed/run.sh > nohup.out 2> nohup.err < /dev/null &
