@@ -40,8 +40,8 @@ jobs:
           TARGET: ${{ secrets.TARGET_DIR }}
       - name: Run
         env:
-    +     FOO: "BAR"
-    +     BAR: "FOO
+          FOO: "BAR"
+          BAR: "FOO
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
