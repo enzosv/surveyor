@@ -28,7 +28,11 @@ jobs:
         env:
           FIREBASE_WEB: ${{ secrets.FIREBASE_WEB }}
       - name: Generate run script
-        run: echo "kill -9 \$(lsof -t -i:8080) || echo no existing process && nohup ./nikki -p 8080 -db $DATABASE_URL & echo 'it ran'" > run.sh
+        run: echo "if pids=\$(lsof -i:8080 -t);
+          then kill $pids 
+          fi 
+          nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL &
+          echo 'it ran'"> run.sh
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy
@@ -53,5 +57,5 @@ jobs:
           envs: FOO,BAR,DATABASE_URL,TARGET
           script: |
             echo "I am $BAR"
-            /home/ec2-user/deployed/run.sh
+            /home/ec2-user/deployed/run.sh &
             echo "I am $BAR"
