@@ -36,13 +36,14 @@ jobs:
           TARGET: ${{ secrets.TARGET_DIR }}
       - name: Run
         uses: appleboy/ssh-action@master
+        env: 
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          TARGET: ${{ secrets.TARGET_DIR }}
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            whoami
-            ls -al
             kill $(lsof -t -i:8080)
-            ${{ secrets.DATABASE_URL }}/nikki -p 8080 -db ${{ secrets.DATABASE_URL }}
+            "$TARGET"/nikki -p 8080 -db "$DATABASE_URL"
