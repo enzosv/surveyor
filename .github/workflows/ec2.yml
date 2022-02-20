@@ -13,10 +13,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: secret test
-        run: echo $"TEST"
-        env: 
-          TEST: ${{ secrets.TEST }}
       - name: Checkout the files
         uses: actions/checkout@v2
       - name: Fetch dependencies
