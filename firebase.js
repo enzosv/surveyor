@@ -51,8 +51,7 @@ function signin() {
                 // User successfully signed in.
                 // Return type determines whether we continue the redirect automatically
                 // or whether we leave that to developer to handle.
-                console.log(authResult.credential.idToken)
-                firebase.auth().currentUser.getIdToken(/* forceRefresh */ true).then(function (idToken) {
+                firebase.auth().currentUser.getIdToken(true).then(function (idToken) {
                     fetch("/signin", {
                         method: 'POST',
                         headers: {
@@ -61,7 +60,7 @@ function signin() {
                         }
                     })
                 }).catch(function (error) {
-                    // Handle error
+                    console.error(error)
                 });
                 return true;
             }

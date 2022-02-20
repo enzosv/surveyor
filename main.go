@@ -40,7 +40,7 @@ func main() {
 	r.Handle("/admin/questions", SetQuestionHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/questions/{question_id}", DeleteQuestionHandler(*pg_url)).Methods("DELETE")
 	r.Handle("/daily", AnswerDailyHandler(*pg_url)).Methods("POST")
-	r.Handle("/daily", ListDailyQuestionsManager(*pg_url)).Methods("GET")
+	r.Handle("/daily", ListDailyQuestionsHandler(*pg_url)).Methods("GET")
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir(".")))
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), r))
@@ -75,11 +75,32 @@ func SignInHandler(pg_url string) http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
+		// default team and organization for prototype
+		err = setPrototypeDefaults(ctx, conn, userID)
+		if err != nil {
+			fmt.Println(err)
+			response := map[string]string{"error": err.Error()}
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+
 		fmt.Fprintf(w, "%d", userID)
 	}
 }
 
-func ListDailyQuestionsManager(pg_url string) http.HandlerFunc {
+func setPrototypeDefaults(ctx context.Context, conn *pgx.Conn, userID int) error {
+	query := `
+		INSERT INTO members (user_id, team_id)
+		VALUES ($1, 1)
+		ON CONFLICT ON CONSTRAINT members_un
+		DO NOTHING;
+	`
+	_, err := conn.Exec(ctx, query, userID)
+	return err
+}
+
+func ListDailyQuestionsHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -833,7 +854,8 @@ func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (int, e
 		INSERT INTO users (username, firebase_uid)
 		VALUES ($1, $2) 
 		ON CONFLICT ON CONSTRAINT users_firebase_uid_key
-		DO NOTHING
+		DO UPDATE SET
+			username=EXCLUDED.username 
 		RETURNING user_id;
 	`
 	row := conn.QueryRow(ctx, query, email, user.UID)
@@ -847,7 +869,7 @@ func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (int, e
 
 func decodeIdToken(ctx context.Context, token string) (*auth.Token, error) {
 	opt := option.WithCredentialsFile("credentials.json")
-	app, err := firebase.NewApp(context.Background(), nil, opt)
+	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
 		return nil, errors.Wrap(err, "error initializing app")
 	}
