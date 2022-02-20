@@ -46,7 +46,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: FOO,BAR,DATABASE_URL,TARGET,REMOTE_USER
+          envs: DATABASE_URL,TARGET,REMOTE_USER
           script: |
             /usr/sbin/lsof -i:8080 -t | xargs kill -9
-            nohup /home/"$REMOTE_USER"/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
+            cd /home/"$REMOTE_USER"/deployed
+            nohup ./nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
