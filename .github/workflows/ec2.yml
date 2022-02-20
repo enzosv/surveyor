@@ -53,5 +53,5 @@ jobs:
           envs: FOO,BAR,DATABASE_URL,TARGET
           script: |
             echo "I am $BAR"
-            "$TARGET"run.sh
+            /home/ec2-user/deployed/run.sh
             echo "I am $BAR"
