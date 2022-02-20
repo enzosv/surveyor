@@ -27,6 +27,11 @@ jobs:
         run: echo "$FIREBASE_WEB" > firebase_web.json
         env:
           FIREBASE_WEB: ${{ secrets.FIREBASE_WEB }}
+      - name: Generate run script
+        run: echo "kill \$(lsof -t -i:8080 & $TARGET/nikki -p 8080 -db $DATABASE_URL" > run.sh
+        env:
+          TARGET: ${{ secrets.TARGET_DIR }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy
         uses: easingthemes/ssh-deploy@main
         env:
@@ -37,7 +42,6 @@ jobs:
       - name: Run
         uses: appleboy/ssh-action@master
         env: 
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TARGET: ${{ secrets.TARGET_DIR }}
           TEST: ${{ secrets.TEST }}
         with:
@@ -45,8 +49,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: DATABASE_URL,TARGET,TEST
+          envs: TARGET,TEST
           script: |
             echo "$TEST"
-            kill $(lsof -t -i:8080)
-            "$TARGET"/nikki -p 8080 -db "$DATABASE_URL"
+            "./$TARGET/run.sh"
