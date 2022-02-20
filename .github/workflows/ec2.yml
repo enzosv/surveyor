@@ -41,7 +41,7 @@ jobs:
       - name: Run
         env:
           FOO: "BAR"
-          BAR: "FOO
+          BAR: "FOO"
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
