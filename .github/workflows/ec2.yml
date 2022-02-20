@@ -8,12 +8,15 @@ on:
 
 jobs:
   deploy:
+    environment: aws_prototype
     name: Deploy to EC2 on main branch push
     runs-on: ubuntu-latest
 
     steps:
       - name: secret test
-        run: echo ${{ secrets.TEST }}
+        run: echo $"TEST"
+        env: 
+          TEST: ${{ secrets.TEST }}
       - name: Checkout the files
         uses: actions/checkout@v2
       - name: Fetch dependencies
