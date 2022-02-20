@@ -28,7 +28,7 @@ jobs:
         env:
           FIREBASE_WEB: ${{ secrets.FIREBASE_WEB }}
       - name: Generate run script
-        run: echo "kill \$(lsof -t -i:8080) || echo no existing process && ./nikki -p 8080 -db $DATABASE_URL" > run.sh
+        run: echo "kill \$(lsof -t -i:8080) || echo no existing process && ./nikki -p 8080 -db $DATABASE_URL" && echo "it ran" > run.sh
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: Deploy
@@ -42,6 +42,7 @@ jobs:
         env:
           FOO: "BAR"
           BAR: "FOO"
+          TARGET: ${{ secrets.TARGET_DIR }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         uses: appleboy/ssh-action@v0.1.4
         with:
@@ -49,8 +50,11 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: FOO,BAR,DATABASE_URL
+          envs: FOO,BAR,DATABASE_URL,TARGET
           script: |
+            lsof -t -i:8080
             kill $(lsof -t -i:8080) || echo no existing process
             echo "I am $BAR"
             nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
+            echo "I am $FOO"
+            nohup "$TARGET"run.sh > nohup.out 2> nohup.err < /dev/null &
