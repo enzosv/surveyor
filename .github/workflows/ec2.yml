@@ -39,16 +39,17 @@ jobs:
           REMOTE_USER: ${{ secrets.USERNAME }}
           TARGET: ${{ secrets.TARGET_DIR }}
       - name: Run
-        env: 
-          TARGET: ${{ secrets.TARGET_DIR }}
+        env:
+    +     FOO: "BAR"
+    +     BAR: "FOO
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST_DNS }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
-          envs: TARGET
+          envs: FOO,BAR
           script: |
-            whoami
-            echo $TARGET
-            nohup "$TARGET"run.sh > nohup.out 2> nohup.err < /dev/null &
+            echo "I am $FOO"
+            echo "I am $BAR"
+            nohup ~/deployed/run.sh > nohup.out 2> nohup.err < /dev/null &
