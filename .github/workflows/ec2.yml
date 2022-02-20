@@ -49,6 +49,6 @@ jobs:
           port: 22
           envs: FOO,BAR,DATABASE_URL,TARGET,REMOTE_USER
           script: |
-            if pids=$(lsof -i:8080 -t); then kill $pids; fi;
+            lsof -i:8080 -t | xargs kill -9
             nohup /home/ec2-user/deployed/nikki -p 8080 -db $DATABASE_URL > nohup.out 2> nohup.err < /dev/null &
             echo "I am $BAR"
