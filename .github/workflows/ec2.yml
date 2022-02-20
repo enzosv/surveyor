@@ -59,6 +59,5 @@ jobs:
           port: 22
           envs: FOO,BAR,DATABASE_URL,TARGET,REMOTE_USER
           script: |
-            echo "I am $BAR"
-            /home/"$REMOTE_USER"/deployed/run.sh &
+            /home/ec2-user/deployed/run.sh &
             echo "I am $BAR"
