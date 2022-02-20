@@ -397,7 +397,6 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		var answers []DailyAnswer
 		err := json.NewDecoder(r.Body).Decode(&answers)
-		fmt.Println(r.Body)
 		if err != nil {
 			response := map[string]string{"error": "answers are required"}
 			w.WriteHeader(http.StatusBadRequest)
@@ -419,7 +418,6 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		if err != nil {
 			return
 		}
-		fmt.Println(user)
 		err = answerQuestions(ctx, conn, answers, user.ID)
 		if err != nil {
 			fmt.Println(err)
@@ -847,6 +845,8 @@ func linkFirebase(ctx context.Context, conn *pgx.Conn, user *auth.Token) (int, e
 	for k, v := range user.Firebase.Identities {
 		if k == "email" {
 			email = fmt.Sprintf("%v", v)
+			email = strings.TrimPrefix(email, "[")
+			email = strings.TrimSuffix(email, "]")
 			break
 		}
 	}
@@ -877,6 +877,5 @@ func decodeIdToken(ctx context.Context, token string) (*auth.Token, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting Auth client")
 	}
-
 	return client.VerifyIDToken(ctx, token)
 }

@@ -16,7 +16,7 @@ async function initialize(success) {
                 window.location.replace("/");
                 return
             }
-            signin()
+            firebaseSignIn()
             return
         }
         if(window.location.href == window.location.origin + "/") {
@@ -26,10 +26,12 @@ async function initialize(success) {
         console.log(user)
         user.getIdToken(true).then(function(idToken) {
             token = idToken
+            signin(idToken)
             success(idToken)
+            
         }).catch(function(error) {
             console.error(error)
-            signin()
+            firebaseSignIn()
             return
         });
     });
@@ -43,7 +45,19 @@ function signout() {
       });
 }
 
-function signin() {
+async function signin(idToken) {
+    let request = await fetch("/signin", {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Token ' + idToken
+        }
+    })
+    let response = await request.json()
+    console.log(response)
+}
+
+function firebaseSignIn() {
     var ui = new firebaseui.auth.AuthUI(firebase.auth());
     var uiConfig = {
         callbacks: {
@@ -51,17 +65,6 @@ function signin() {
                 // User successfully signed in.
                 // Return type determines whether we continue the redirect automatically
                 // or whether we leave that to developer to handle.
-                firebase.auth().currentUser.getIdToken(true).then(function (idToken) {
-                    fetch("/signin", {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                            'Authorization': 'Token ' + idToken
-                        }
-                    })
-                }).catch(function (error) {
-                    console.error(error)
-                });
                 return true;
             }
         },
@@ -70,12 +73,10 @@ function signin() {
         signInSuccessUrl: '/questions',
         signInOptions: [
             {
-                provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID,
-                requireDisplayName: true
+                provider: firebase.auth.GoogleAuthProvider.PROVIDER_ID
             },
             {
-                provider: firebase.auth.EmailAuthProvider.PROVIDER_ID,
-                requireDisplayName: true
+                provider: firebase.auth.EmailAuthProvider.PROVIDER_ID
             }
         ],
         // Terms of service url.
