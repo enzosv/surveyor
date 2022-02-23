@@ -29,6 +29,11 @@ async function initialize(success) {
             success(idToken)
             
         }).catch(function(error) {
+            if(window.location.href != window.location.origin + "/") {
+                console.log("redirect")
+                window.location.replace("/");
+                return
+            }
             console.error(error)
             firebaseSignIn()
             return
