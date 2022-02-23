@@ -71,9 +71,9 @@ async function createFacet() {
 
 async function createQuestion() {
     let data = {
-        "facet_id": $("#facet_id").val(),
+        "facet_id": parseInt($("#facet_id").val()),
         "statement": $("#statement").val(),
-        "is_reverse": $("#is_reverse").val(),
+        "is_reverse":document.getElementById("is_reverse").checked,
     }
     console.log(data)
     await fetch("/admin/questions", {
