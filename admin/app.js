@@ -72,7 +72,8 @@ async function createFacet() {
 async function createQuestion() {
     let data = {
         "facet_id": $("#facet_id").val(),
-        "statement": $("#statement").val()
+        "statement": $("#statement").val(),
+        "is_reverse": $("#is_reverse").val(),
     }
     console.log(data)
     await fetch("/admin/questions", {
@@ -248,6 +249,7 @@ function fetchQuestions() {
                 { "data": "question_id" },
                 { "data": "facet" },
                 { "data": "statement" },
+                { "data": "is_reverse" },
                 { "data": "created_at" },
                 {
                     "data": null,
