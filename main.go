@@ -26,9 +26,8 @@ func main() {
 	flag.Parse()
 	r := mux.NewRouter()
 	r.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "nikki pong")
+		fmt.Fprintf(w, "surveyor pong")
 	})
-	r.HandleFunc("/dashboard", DashboardHandler(*pg_url)).Methods("GET")
 	r.HandleFunc("/signin", SignInHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/constructs", ListConstructHandler(*pg_url)).Methods("GET")
 	r.Handle("/admin/constructs", SetConstructHandler(*pg_url)).Methods("POST")
@@ -55,9 +54,7 @@ func ListMemberAnswersHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -69,9 +66,7 @@ func ListMemberAnswersHandler(pg_url string) http.HandlerFunc {
 		answers, err := collateAnswers(ctx, conn, user.ID)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		json.NewEncoder(w).Encode(answers)
@@ -86,9 +81,7 @@ func ListMembershipsHandler(pg_url string) http.HandlerFunc {
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -99,9 +92,7 @@ func ListMembershipsHandler(pg_url string) http.HandlerFunc {
 		memberships, err := listMemberships(ctx, conn, user.ID)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		json.NewEncoder(w).Encode(memberships)
@@ -116,34 +107,26 @@ func SignInHandler(pg_url string) http.HandlerFunc {
 		idToken := strings.ReplaceAll(strings.TrimPrefix(r.Header.Get("Authorization"), "Token"), " ", "")
 		user, err := decodeIdToken(ctx, idToken)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
 		u, err := linkFirebase(ctx, conn, user)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		// default team and organization for prototype
 		err = setPrototypeDefaults(ctx, conn, u.ID)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -169,9 +152,7 @@ func ListDailyQuestionsHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -182,9 +163,7 @@ func ListDailyQuestionsHandler(pg_url string) http.HandlerFunc {
 		daily, err := dailyQuestions(ctx, conn, user.ID)
 		if err != nil {
 			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		json.NewEncoder(w).Encode(daily)
@@ -198,9 +177,7 @@ func ListConstructHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -209,16 +186,12 @@ func ListConstructHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		constructs, err := listConstructs(ctx, conn)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		response := map[string][]Construct{"data": constructs}
@@ -233,9 +206,7 @@ func ListFacetHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -244,16 +215,12 @@ func ListFacetHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		list, err := listFacets(ctx, conn)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		response := map[string][]Facet{"data": list}
@@ -268,9 +235,7 @@ func ListQuestionHandler(pg_url string) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -279,16 +244,12 @@ func ListQuestionHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		list, err := listQuestions(ctx, conn)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		response := map[string][]Question{"data": list}
@@ -300,10 +261,7 @@ func verifyUser(ctx context.Context, w http.ResponseWriter, r *http.Request, con
 	idToken := strings.ReplaceAll(strings.TrimPrefix(r.Header.Get("Authorization"), "Token"), " ", "")
 	user, err := userFromToken(ctx, conn, idToken)
 	if err != nil {
-		fmt.Println(err)
-		response := map[string]string{"error": err.Error()}
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(response)
+		jsonError(w, http.StatusUnauthorized, err.Error())
 		return user, err
 	}
 	return user, nil
@@ -321,18 +279,14 @@ func SetConstructHandler(pg_url string) http.HandlerFunc {
 		var req ConstructRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
 		if err != nil {
-			response := map[string]string{"error": "invalid request body"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -342,17 +296,13 @@ func SetConstructHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 
-		construct, err := setConstruct(ctx, conn, req.Slug, req.Name)
+		construct, err := setConstruct(ctx, conn, req)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		json.NewEncoder(w).Encode(construct)
@@ -366,18 +316,14 @@ func DeleteFacetHandler(pg_url string) http.HandlerFunc {
 		vars := mux.Vars(r)
 		facet_id, err := strconv.Atoi(vars["facet_id"])
 		if err != nil {
-			response := map[string]string{"error": "facet_id must be of type int"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, "facet_id must be of type int")
 			return
 		}
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -387,17 +333,12 @@ func DeleteFacetHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		err = deleteFacet(ctx, conn, facet_id)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -410,19 +351,14 @@ func DeleteConstructHandler(pg_url string) http.HandlerFunc {
 		vars := mux.Vars(r)
 		construct_id, err := strconv.Atoi(vars["construct_id"])
 		if err != nil {
-			response := map[string]string{"error": "construct_id must be of type int"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, "construct_id must be of type int")
 			return
 		}
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -432,16 +368,12 @@ func DeleteConstructHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		err = deleteConstruct(ctx, conn, construct_id)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -459,20 +391,14 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		var answers []DailyAnswer
 		err := json.NewDecoder(r.Body).Decode(&answers)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": "answers are required"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, "answers are required")
 			return
 		}
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -483,10 +409,7 @@ func AnswerDailyHandler(pg_url string) http.HandlerFunc {
 		}
 		err = answerQuestions(ctx, conn, answers, user.ID)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -529,18 +452,14 @@ func DeleteQuestionHandler(pg_url string) http.HandlerFunc {
 		vars := mux.Vars(r)
 		question_id, err := strconv.Atoi(vars["question_id"])
 		if err != nil {
-			response := map[string]string{"error": "question_id must be of type int"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, "question_id must be of type int")
 			return
 		}
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -550,56 +469,37 @@ func DeleteQuestionHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 		err = deleteQuestion(ctx, conn, question_id)
 		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
+}
+
+type FacetRequest struct {
+	ConstructID int    `json:"construct_id"`
+	Name        string `json:"name"`
 }
 
 func SetFacetHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
-		var req map[string]string
+		var req FacetRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
-		if _, ok := req["construct_id"]; !ok {
-			response := map[string]string{"error": "construct_id is required"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-
-		construct_id, err := strconv.Atoi(req["construct_id"])
 		if err != nil {
-			response := map[string]string{"error": "facet_id must be of type int"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if _, ok := req["name"]; !ok {
-			response := map[string]string{"error": "name is required"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-		name := req["name"]
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -609,55 +509,46 @@ func SetFacetHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 
-		err = setFacet(ctx, conn, construct_id, name)
+		err = setFacet(ctx, conn, req)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
+}
+
+func jsonError(w http.ResponseWriter, status int, message string) {
+	fmt.Println(message)
+	response := map[string]string{"error": "facet_id is required"}
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(response)
+}
+
+type QuestionRequest struct {
+	FacetID   int    `json:"facet_id"`
+	Statement string `json:"statement"`
+	IsReverse bool   `json:"is_reverse"`
 }
 
 func SetQuestionHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Content-Type", "application/json")
-		var req map[string]string
+		var req QuestionRequest
 		err := json.NewDecoder(r.Body).Decode(&req)
-		if _, ok := req["facet_id"]; !ok {
-			response := map[string]string{"error": "facet_id is required"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-		facet_id, err := strconv.Atoi(req["facet_id"])
 		if err != nil {
-			response := map[string]string{"error": "facet_id must be of type int"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusBadRequest, err.Error())
 			return
 		}
-		if _, ok := req["statement"]; !ok {
-			response := map[string]string{"error": "statement is required"}
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-		statement := req["statement"]
 
 		ctx := r.Context()
 		conn, err := pgx.Connect(ctx, pg_url)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 		defer conn.Close(ctx)
@@ -667,17 +558,13 @@ func SetQuestionHandler(pg_url string) http.HandlerFunc {
 			return
 		}
 		if !user.IsAdmin {
-			response := map[string]string{"error": "endpoint restricted to admins"}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
 			return
 		}
 
-		err = setQuestion(ctx, conn, facet_id, statement)
+		err = setQuestion(ctx, conn, req)
 		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
+			jsonError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 	}
@@ -702,6 +589,7 @@ type Question struct {
 	Facet     string    `json:"facet"`
 	FacetID   int       `json:"facet_id"`
 	Statement string    `json:"statement"`
+	IsReverse bool      `json:"is_reverse"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -773,7 +661,7 @@ func listFacets(ctx context.Context, conn *pgx.Conn) ([]Facet, error) {
 
 func listQuestions(ctx context.Context, conn *pgx.Conn) ([]Question, error) {
 	query := `
-		SELECT question_id, f.name, statement, q.created_at 
+		SELECT question_id, f.name, statement, is_reverse, q.created_at 
 		FROM questions q
 		JOIN facets f USING (facet_id);
 	`
@@ -785,7 +673,7 @@ func listQuestions(ctx context.Context, conn *pgx.Conn) ([]Question, error) {
 	var questions []Question
 	for rows.Next() {
 		var question Question
-		err := rows.Scan(&question.ID, &question.Facet, &question.Statement, &question.CreatedAt)
+		err := rows.Scan(&question.ID, &question.Facet, &question.Statement, &question.IsReverse, &question.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -794,7 +682,7 @@ func listQuestions(ctx context.Context, conn *pgx.Conn) ([]Question, error) {
 	return questions, nil
 }
 
-func setConstruct(ctx context.Context, conn *pgx.Conn, slug, name string) (Construct, error) {
+func setConstruct(ctx context.Context, conn *pgx.Conn, c ConstructRequest) (Construct, error) {
 	query := `
 		INSERT INTO constructs (slug, name)
 		VALUES($1, $2)
@@ -803,7 +691,7 @@ func setConstruct(ctx context.Context, conn *pgx.Conn, slug, name string) (Const
 		RETURNING construct_id, slug, name, created_at;
 	`
 	var construct Construct
-	row := conn.QueryRow(ctx, query, slug, name)
+	row := conn.QueryRow(ctx, query, c.Slug, c.Name)
 	err := row.Scan(&construct.ID, &construct.Slug, &construct.Name, &construct.CreatedAt)
 	return construct, err
 }
@@ -832,50 +720,22 @@ func deleteQuestion(ctx context.Context, conn *pgx.Conn, question_id int) error 
 	return err
 }
 
-func setFacet(ctx context.Context, conn *pgx.Conn, construct_id int, name string) error {
+func setFacet(ctx context.Context, conn *pgx.Conn, f FacetRequest) error {
 	query := `
 		INSERT INTO facets (construct_id, name)
 		VALUES($1, $2);
 	`
-	_, err := conn.Exec(ctx, query, construct_id, name)
+	_, err := conn.Exec(ctx, query, f.ConstructID, f.Name)
 	return err
 }
 
-func setQuestion(ctx context.Context, conn *pgx.Conn, facet_id int, statement string) error {
+func setQuestion(ctx context.Context, conn *pgx.Conn, q QuestionRequest) error {
 	query := `
-		INSERT INTO questions (facet_id, statement)
-		VALUES($1, $2);
+		INSERT INTO questions (facet_id, statement, is_reverse)
+		VALUES($1, $2, $3);
 	`
-	_, err := conn.Exec(ctx, query, facet_id, statement)
+	_, err := conn.Exec(ctx, query, q.FacetID, q.Statement, q.IsReverse)
 	return err
-}
-
-func DashboardHandler(pg_url string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Content-Type", "application/json")
-		idToken := strings.ReplaceAll(strings.TrimPrefix(r.Header.Get("Authorization"), "Token"), " ", "")
-		conn, err := pgx.Connect(ctx, pg_url)
-		if err != nil {
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-		defer conn.Close(ctx)
-		user, err := userFromToken(ctx, conn, idToken)
-		if err != nil {
-			fmt.Println(err)
-			response := map[string]string{"error": err.Error()}
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(response)
-			return
-		}
-		if user.IsAdmin {
-
-		}
-	}
 }
 
 type User struct {
