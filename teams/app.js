@@ -32,7 +32,7 @@ async function manager(idToken){
         }
         // add space
         answers[key].unshift(NaN)
-        answers[key].unshift(value/totals.count)
+        answers[key].unshift((value/totals.count).toFixed(2))
     }
     var series = []
     for (let [facet, value] of Object.entries(answers)) {
