@@ -638,7 +638,7 @@ func listConstructs(ctx context.Context, conn *pgx.Conn) ([]Construct, error) {
 
 func listFacets(ctx context.Context, conn *pgx.Conn) ([]Facet, error) {
 	query := `
-		SELECT facet_id, c.slug, f.name, f.created_at 
+		SELECT facet_id, c.name, f.name, f.created_at 
 		FROM facets f
 		JOIN constructs c USING (construct_id);
 	`

@@ -15,7 +15,7 @@
   <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-auth.js"></script>
   <link rel="stylesheet" href="main.css">
   <script src="../firebase.js"></script>
-  <script src="app.js"></script>
+  <script src="admin.js"></script>
 </head>
 
 <body class="bg-dark text-light">
@@ -33,14 +33,11 @@
 
         <button type="button" class="btn btn-primary mb-2" onclick="setConstruct()">Add</button>
       </form>
-      <table id="constructs" class="table table-dark table-striped text-light bg-dark">
+      <table id="constructs" class="table table-dark table-striped table-hover table-bordered text-light bg-dark">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Slug</th>
             <th>Name</th>
             <th>Created At</th>
-            <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>
@@ -62,14 +59,12 @@
 
         <button type="button" class="btn btn-primary mb-2" onclick="createFacet()">Add</button>
       </form>
-      <table id="facets" class="table table-dark table-striped text-light bg-dark">
+      <table id="facets" class="table table-dark table-striped table-hover table-bordered text-light bg-dark">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Construct</th>
             <th>Name</th>
             <th>Created At</th>
-            <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>
@@ -96,15 +91,13 @@
 
         <button type="button" class="btn btn-primary mb-2" onclick="createQuestion()">Add</button>
       </form>
-      <table id="questions" class="table table-dark table-striped text-light bg-dark">
+      <table id="questions" class="table table-dark table-striped table-hover table-bordered text-light bg-dark">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Facet</th>
             <th>Statement</th>
             <th>Is Reverse</th>
             <th>Created At</th>
-            <th>Edit</th>
             <th>Delete</th>
           </tr>
         </thead>
