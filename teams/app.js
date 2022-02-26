@@ -32,7 +32,7 @@ async function manager(idToken){
         }
         // add space
         answers[key].unshift(NaN)
-        answers[key].unshift((value/totals.count).toFixed(2))
+        answers[key].unshift(value/totals.count)
     }
     var series = []
     for (let [facet, value] of Object.entries(answers)) {
@@ -45,6 +45,10 @@ async function manager(idToken){
     }
 
     Highcharts.chart('container', {
+        lang: {
+          decimalPoint: ',',
+          thousandsSep: '.'
+        },
         chart: {
           type: 'column'
         },
@@ -82,7 +86,8 @@ async function manager(idToken){
         },
         tooltip: {
           headerFormat: '<b>{point.x}</b><br/>',
-          pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}'
+          pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}',
+          valueDecimals: 2 
         },
         plotOptions: {
           column: {

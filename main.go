@@ -821,8 +821,8 @@ type CollatedAnsweres struct {
 func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]CollatedAnsweres, error) {
 	query := `
 		select t.name, c.name, f.name, 
-		coalesce(sum(-a.response+8) filter (where not q.reverse_measurement), 0)+
-		coalesce(sum(-a.response+8) filter (where q.reverse_measurement),0) as total,
+		coalesce(sum(-a.response+8) filter (where not q.is_reverse), 0)+
+		coalesce(sum(-a.response+8) filter (where q.is_reverse),0) as total,
 		count (a.response),
 		to_char(date_trunc('day', timezone('PHT', a.created_at)), 'yyyy-mm-dd')
 		from members m
@@ -838,7 +838,8 @@ func collateAnswers(ctx context.Context, conn *pgx.Conn, userID int) ([]Collated
 			where is_manager
 			and user_id = $1
 		)
-		group by t.name, c.construct_id, f.facet_id, date_trunc('day', timezone('PHT', a.created_at));
+		group by t.name, c.construct_id, f.facet_id, date_trunc('day', timezone('PHT', a.created_at))
+		order by date_trunc('day', timezone('PHT', a.created_at));
 	`
 	rows, err := conn.Query(ctx, query, userID)
 	if err != nil {
