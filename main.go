@@ -419,6 +419,9 @@ func answerQuestions(ctx context.Context, conn *pgx.Conn, answers []DailyAnswer,
 	query := `
 		INSERT INTO answers (question_id, response, user_id)
 		VALUES ($1, $2, $3)
+		ON CONFLICT (question_id, user_id, date_trunc('day', created_at AT TIME ZONE 'PHT'))
+		DO UPDATE SET
+		response = EXCLUDED.response;
 	`
 	tx, err := conn.Begin(ctx)
 	if err != nil {
