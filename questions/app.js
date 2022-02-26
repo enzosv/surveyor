@@ -35,21 +35,33 @@ async function main(idToken){
     });
 }
 
-function answer() {
+async function answer() {
     var data = []
     question_ids.forEach(id => {
         let answer = document.querySelector(`input[name="${id}"]:checked`).value;
         data.push({"question_id": id, "answer":parseInt(answer)})
     })
-    console.log(data, token)
-    fetch("/daily", {
+    await fetch("/daily", {
         method: 'POST',
         headers: {
             'Accept': 'application/json',
             'Authorization': 'Token '+ token
         },
         body: JSON.stringify(data)
-    })
+    }).then((response) => {
+        if (response.status >= 400 && response.status < 600) {
+          throw new Error("Bad response from server");
+        }
+        return response;
+    }).then((returnedResponse) => {
+        console.log(returnedResponse)
+       // Your response to manipulate
+       alert("Thank you. Your response has been recorded.")
+    }).catch((error) => {
+      // Your error is here!
+      console.log(error)
+      alert("Something went wrong. Please inform an administrator.")
+    });
 }
 
 initialize( function(idToken){
