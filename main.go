@@ -594,23 +594,28 @@ type Question struct {
 	Statement string    `json:"statement"`
 	IsReverse bool      `json:"is_reverse"`
 	CreatedAt time.Time `json:"created_at"`
+	Response  *int      `json:"response,omitempty"`
 }
 
 func dailyQuestions(ctx context.Context, conn *pgx.Conn, userID int) ([]Question, error) {
 	query := `
-		select d.question_id, d.statement
-		from get_or_generate_dailies(1) d
+		select d.question_id, d.statement, a.response
+		from get_or_generate_dailies($1) d
+		left outer join answers a
+			ON a.user_id = $1
+			AND a.question_id = d.question_id
+			AND date_trunc('day', timezone('PHT', a.created_at)) = date_trunc('day', timezone('PHT', NOW()))
 		ORDER BY RANDOM();
 	`
 	var questions []Question
-	rows, err := conn.Query(ctx, query)
+	rows, err := conn.Query(ctx, query, userID)
 	if err != nil {
 		return questions, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var question Question
-		err := rows.Scan(&question.ID, &question.Statement)
+		err := rows.Scan(&question.ID, &question.Statement, &question.Response)
 		if err != nil {
 			return questions, err
 		}
