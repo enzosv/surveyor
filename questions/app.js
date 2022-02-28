@@ -12,23 +12,11 @@ async function main(idToken){
     let container = document.getElementById("questions")
     questions.forEach(element => {
         question_ids.push(element.question_id)
-        let html = `
-        <h4 class="pt-5">${element.statement}<h4>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:1" value="1" ${element.response==1 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:1">1</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:2" value="2" ${element.response==2 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:2">2</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:3" value="3" ${element.response==3 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:3">3</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:4" value="4" ${element.response==4 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:4">4</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:5" value="5" ${element.response==5 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:5">5</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:6" value="6" ${element.response==6 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:6">6</label>
-        <input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:7" value="7" ${element.response==7 ? "checked" : ""}>
-        <label class="btn btn-outline-success" for="${element.question_id}:7">7</label>
-        `
+        let html = `<h4 class="pt-5">${element.statement}<h4>`
+        for(var i=1;i<8;i++){
+            html += `<input type="radio" required class="btn-check btn-block" name="${element.question_id}" id="${element.question_id}:${i}" value="${i}" ${element.response==i? "checked" : ""}>
+            <label class="btn btn-outline-success" for="${element.question_id}:${i}">${i}</label>`
+        }
         let div = document.createElement("div")
         div.innerHTML = html
         container.prepend(div)
