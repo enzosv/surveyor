@@ -37,6 +37,7 @@ func main() {
 	r.Handle("/admin/facets/{facet_id}", DeleteFacetHandler(*pg_url)).Methods("DELETE")
 	r.Handle("/admin/questions", ListQuestionHandler(*pg_url)).Methods("GET")
 	r.Handle("/admin/questions", SetQuestionHandler(*pg_url)).Methods("POST")
+	r.Handle("/admin/questions/{question_id", EditQuestionHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/questions/{question_id}", DeleteQuestionHandler(*pg_url)).Methods("DELETE")
 	r.Handle("/daily", AnswerDailyHandler(*pg_url)).Methods("POST")
 	r.Handle("/daily", ListDailyQuestionsHandler(*pg_url)).Methods("GET")
@@ -448,6 +449,48 @@ func commit(ctx context.Context, tx pgx.Tx, batch *pgx.Batch) error {
 	return tx.Commit(ctx)
 }
 
+func EditQuestionHandler(pg_url string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		vars := mux.Vars(r)
+		question_id, err := strconv.Atoi(vars["question_id"])
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, "question_id must be of type int")
+			return
+		}
+		var req QuestionRequest
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		ctx := r.Context()
+		conn, err := pgx.Connect(ctx, pg_url)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer conn.Close(ctx)
+
+		user, err := verifyUser(ctx, w, r, conn)
+		if err != nil {
+			return
+		}
+		if !user.IsAdmin {
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
+			return
+		}
+		q, err := editQuestion(ctx, conn, question_id, req)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		json.NewEncoder(w).Encode(q)
+	}
+}
+
 func DeleteQuestionHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -718,6 +761,23 @@ func deleteFacet(ctx context.Context, conn *pgx.Conn, facet_id int) error {
 	`
 	_, err := conn.Exec(ctx, query, facet_id)
 	return err
+}
+
+func editQuestion(ctx context.Context, conn *pgx.Conn, question_id int, req QuestionRequest) (Question, error) {
+	// TODO: Warning or error if question already has answers
+	query := `
+		UPDATE questions 
+		SET statement = $1 AND facet_id = $2 AND is_reverse = $3
+		WHERE question_id = $4
+		RETURNING question_id, facet_id, statement, is_reverse;
+	`
+	row := conn.QueryRow(ctx, query, req.Statement, req.FacetID, req.IsReverse, question_id)
+	var question Question
+	err := row.Scan(&question.ID, &question.FacetID, &question.Statement, &question.IsReverse)
+	if err != nil {
+		return question, err
+	}
+	return question, nil
 }
 
 func deleteQuestion(ctx context.Context, conn *pgx.Conn, question_id int) error {
