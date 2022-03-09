@@ -449,6 +449,48 @@ func commit(ctx context.Context, tx pgx.Tx, batch *pgx.Batch) error {
 	return tx.Commit(ctx)
 }
 
+func EditFacetHandler(pg_url string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		vars := mux.Vars(r)
+		facet_id, err := strconv.Atoi(vars["facet_id"])
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, "facet_id must be of type int")
+			return
+		}
+		var req FacetRequest
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		ctx := r.Context()
+		conn, err := pgx.Connect(ctx, pg_url)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer conn.Close(ctx)
+
+		user, err := verifyUser(ctx, w, r, conn)
+		if err != nil {
+			return
+		}
+		if !user.IsAdmin {
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
+			return
+		}
+		f, err := editFacet(ctx, conn, facet_id, req)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		json.NewEncoder(w).Encode(f)
+	}
+}
+
 func EditQuestionHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -761,6 +803,24 @@ func deleteFacet(ctx context.Context, conn *pgx.Conn, facet_id int) error {
 	`
 	_, err := conn.Exec(ctx, query, facet_id)
 	return err
+}
+
+func editFacet(ctx context.Context, conn *pgx.Conn, facet_id int, req FacetRequest) (Facet, error) {
+	// TODO: Warning or error if question already has answers
+	query := `
+		UPDATE facets f
+		SET name = $1 AND construct_id = $2
+		JOIN constructs c USING (construct_id)
+		WHERE facet_id = $3
+		RETURNING f.facet_id, f.name, c.name;
+	`
+	row := conn.QueryRow(ctx, query, req.Name, req.ConstructID, facet_id)
+	var facet Facet
+	err := row.Scan(&facet.ID, &facet.Name, &facet.Construct, &facet)
+	if err != nil {
+		return facet, err
+	}
+	return facet, nil
 }
 
 func editQuestion(ctx context.Context, conn *pgx.Conn, question_id int, req QuestionRequest) (Question, error) {
