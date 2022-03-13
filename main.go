@@ -29,16 +29,22 @@ func main() {
 		fmt.Fprintf(w, "surveyor pong")
 	})
 	r.HandleFunc("/signin", SignInHandler(*pg_url)).Methods("POST")
+
 	r.Handle("/admin/constructs", ListConstructHandler(*pg_url)).Methods("GET")
 	r.Handle("/admin/constructs", SetConstructHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/constructs/{construct_id}", DeleteConstructHandler(*pg_url)).Methods("DELETE")
+	r.Handle("/admin/constructs/{construct_id}", EditConstructHandler(*pg_url)).Methods("POST")
+
 	r.Handle("/admin/facets", ListFacetHandler(*pg_url)).Methods("GET")
 	r.Handle("/admin/facets", SetFacetHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/facets/{facet_id}", DeleteFacetHandler(*pg_url)).Methods("DELETE")
+	r.Handle("/admin/facets/{facet_id}", EditFacetHandler(*pg_url)).Methods("POST")
+
 	r.Handle("/admin/questions", ListQuestionHandler(*pg_url)).Methods("GET")
 	r.Handle("/admin/questions", SetQuestionHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/questions/{question_id", EditQuestionHandler(*pg_url)).Methods("POST")
 	r.Handle("/admin/questions/{question_id}", DeleteQuestionHandler(*pg_url)).Methods("DELETE")
+
 	r.Handle("/daily", AnswerDailyHandler(*pg_url)).Methods("POST")
 	r.Handle("/daily", ListDailyQuestionsHandler(*pg_url)).Methods("GET")
 	r.Handle("/manager/answers", ListMemberAnswersHandler(*pg_url)).Methods("GET")
@@ -449,6 +455,48 @@ func commit(ctx context.Context, tx pgx.Tx, batch *pgx.Batch) error {
 	return tx.Commit(ctx)
 }
 
+func EditConstructHandler(pg_url string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		vars := mux.Vars(r)
+		construct_id, err := strconv.Atoi(vars["construct_id"])
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, "construct_id must be of type int")
+			return
+		}
+		var req ConstructRequest
+		err = json.NewDecoder(r.Body).Decode(&req)
+		if err != nil {
+			jsonError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		ctx := r.Context()
+		conn, err := pgx.Connect(ctx, pg_url)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		defer conn.Close(ctx)
+
+		user, err := verifyUser(ctx, w, r, conn)
+		if err != nil {
+			return
+		}
+		if !user.IsAdmin {
+			jsonError(w, http.StatusUnauthorized, "endpoint is restricted to admins")
+			return
+		}
+		f, err := editConstruct(ctx, conn, construct_id, req)
+		if err != nil {
+			jsonError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		json.NewEncoder(w).Encode(f)
+	}
+}
+
 func EditFacetHandler(pg_url string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -803,6 +851,23 @@ func deleteFacet(ctx context.Context, conn *pgx.Conn, facet_id int) error {
 	`
 	_, err := conn.Exec(ctx, query, facet_id)
 	return err
+}
+
+func editConstruct(ctx context.Context, conn *pgx.Conn, construct_id int, req ConstructRequest) (Construct, error) {
+	// TODO: Warning or error if question already has answers
+	query := `
+		UPDATE constructs c
+		SET name = $1 AND slug = $2
+		WHERE construct_id = $3
+		RETURNING c.construct_id, c.name, c.slug;
+	`
+	row := conn.QueryRow(ctx, query, req.Name, req.Slug, construct_id)
+	var construct Construct
+	err := row.Scan(&construct.ID, &construct.Name, &construct.Slug, &construct)
+	if err != nil {
+		return construct, err
+	}
+	return construct, nil
 }
 
 func editFacet(ctx context.Context, conn *pgx.Conn, facet_id int, req FacetRequest) (Facet, error) {
